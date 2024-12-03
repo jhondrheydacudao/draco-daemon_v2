@@ -1,4 +1,4 @@
-# Air Daemon 
+# Hydra Daemon 
 
 ## Overview
 Hydra Daemon is the daemon for the Hydra Panel.
