@@ -4,7 +4,7 @@
   "key": "fbc862921fba49882d0320ff0c29560479355cf335a9e41e68a90a75f5647d18",
   "_note3": "Other configuration options below. Hostname must be set for FTP to return the correct info.",
   "port": 3002,
-  "version": "0.2.2",
+  "version": "0.1.0-beta1",
   "mysql": {
     "host": "localhost",
     "user": "root",
