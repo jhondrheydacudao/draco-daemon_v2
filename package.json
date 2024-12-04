@@ -1,6 +1,6 @@
 {
-  "name": "AirDaemon",
-  "version": "0.1",
+  "name": "HydraDaemon",
+  "version": "0.1.0-beta1",
   "description": "",
   "main": "index.js",
   "scripts": {
