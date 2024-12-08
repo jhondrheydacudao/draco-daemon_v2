@@ -223,6 +223,8 @@ router.get('/:id/files/view/:filename', async (req, res) => {
     }
 });
 
+const maxFileSize = 100 * 1024 * 1024; // 100 MB in bytes
+
 /**
  * POST /:id/files/upload
  * Uploads one or more files to a specified volume, optionally within a subdirectory.
@@ -232,24 +234,36 @@ router.get('/:id/files/view/:filename', async (req, res) => {
  */
 router.post('/:id/files/upload', upload.array('files'), async (req, res) => {
     const { id } = req.params;
-    const volumePath = path.join(__dirname, '../volumes', id);
-    const subPath = req.query.path || '';
+    const volumePath = path.join(__dirname, '../volumes', id); // Path to volume storage
+    const subPath = req.query.path || ''; // Subdirectory for file storage, if provided
+
+    // Check if any uploaded file exceeds 100 MB
+    for (const file of req.files) {
+        if (file.size > maxFileSize) {
+            // If file exceeds size, respond with 413 status code
+            return res.status(413).json({ message: `File '${file.originalname}' is too large. Maximum allowed size is 100 MB.` });
+        }
+    }
 
     try {
-        const fullPath = safePath(volumePath, subPath);
+        const fullPath = safePath(volumePath, subPath); // Get the full path with subdirectory
 
+        // Move files to the correct destination
         await Promise.all(req.files.map(file => {
-            const destPath = path.join(fullPath, file.originalname);
-            return fs.rename(file.path, destPath);
+            const destPath = path.join(fullPath, file.originalname); // Define destination path
+            return fs.rename(file.path, destPath); // Move file
         }));
 
+        // Respond with success message if all files are uploaded
         res.json({ message: 'Files uploaded successfully' });
     } catch (err) {
-        req.files.forEach(file => fs.unlink(file.path)); // Cleanup any saved files in case of failure
+        // Cleanup any saved files in case of failure
+        req.files.forEach(file => fs.unlink(file.path));
+
+        // Respond with error message if something goes wrong
         res.status(500).json({ message: err.message });
     }
 });
-
 /**
  * POST /:id/files/edit
  * Modifies the content of a specific file within a volume. The file must be of a type that is editable.
