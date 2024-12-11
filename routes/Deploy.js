@@ -197,14 +197,14 @@ router.post('/reinstall/:id', async (req, res) => {
     try {
         const containerInfo = await container.inspect();
         if (containerInfo.State.Running) {
-            console.log(`Stopping container ${id}`);
+            log.info(`Stopping container ${id}`);
             await container.stop();
         }
-        console.log(`Removing container ${id}`);
+        log.info(`Removing container ${id}`);
         await container.remove();
 
         function env2json(env) {
-            console.log('env2json', env);
+            log.info('env2json', env);
             return env.reduce((obj, item) => {
                 const [key, value] = item.split('=');
                 obj[key] = value;
@@ -253,7 +253,7 @@ router.post('/reinstall/:id', async (req, res) => {
         await newContainer.start();
         res.status(200).json({ message: 'Container reinstalled successfully', containerId: newContainer.id });
     } catch (err) {
-        console.error('Error reinstalling instance:', err);
+        log.error('Error reinstalling instance:', err);
         res.status(500).json({ message: err.message });
     }
 });
