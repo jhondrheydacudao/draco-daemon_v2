@@ -290,8 +290,7 @@ function initializeWebSocketServer(server) {
                 });
         
                 stream.on('end', () => {
-                    log.info('Attach stream ended');
-                    ws.send('\nCommand execution completed');
+                    ws.send('\u001b[1m\u001b[33mcontainer@hydra~ \u001b[0mServer marked as Offline\r\n');
                 });
         
                 stream.on('error', (err) => {
