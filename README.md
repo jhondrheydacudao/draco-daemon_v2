@@ -27,7 +27,10 @@ docker pull ghcr.io/hydren-dev/daemon:latest
 ```
 **Configure the `/etc/hydra/daemon.json`**
 ```sh
-mkdir -p /etc/hydra/daemon.json
+mkdir -p /etc/hydra
+```
+```sh
+nano /etc/hydra/daemon.json
 ```
 ```json
 {
