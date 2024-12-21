@@ -26,6 +26,9 @@ or use
 docker pull ghcr.io/hydren-dev/daemon:latest
 ```
 **Configure the `/etc/hydra/daemon.json`**
+```sh
+mkdir -p /etc/hydra/daemon.json
+```
 ```json
 {
   "panel": "https://panel.example.com",
