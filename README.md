@@ -19,6 +19,24 @@ Hydra Daemon is the daemon for the Hydra Panel.
 ## Configuration
 Configuration settings can be adjusted in the `config.json` file. This includes the authentication key for API access.
 
+or use
+
+## Docker
+```
+docker pull ghcr.io/hydren-dev/daemon:latest
+```
+**Configure the `/etc/hydra/daemon.json`
+```json
+{
+  "panel": "https://panel.example.com",
+  "key": "your-node-configure-key-here"
+}
+```
+**Run the Container**
+```
+docker run -it --privileged ghcr.io/hydren-dev/daemon:latest
+```
+
 ## Usage
 The daemon runs as a background service, interfacing with the Hydra Panel for operational commands and status updates. It is not typically interacted with directly by end-users.
 
