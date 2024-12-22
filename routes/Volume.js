@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 const fs = require('fs').promises;
 const multer = require('multer');
 const upload = multer({ dest: 'tmp/' });
@@ -45,6 +46,42 @@ function getFilePurpose(file) {
     return 'other';
 }
 
+async function downloadAndSaveFile(url, fullPath) {
+    try {
+      // Ensure the directory exists, if not, create it
+      const dir = path.dirname(fullPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+  
+      // Fetch the file from the URL
+      const response = await axios({
+        method: 'get',
+        url: url,
+        responseType: 'stream', // Stream the response to handle large files
+      });
+  
+      // Create a writable stream to save the file
+      const writer = fs.createWriteStream(fullPath);
+  
+      // Pipe the response data to the writable stream
+      response.data.pipe(writer);
+  
+      // Wait for the file to be written completely
+      writer.on('finish', () => {
+        console.log(`File downloaded and saved to ${fullPath}`);
+      });
+  
+      writer.on('error', (err) => {
+        console.error('Error writing file:', err);
+      });
+  
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
+  }
+
+  
 /**
  * Determines if a file is editable based on its extension.
  * @param {string} file - The file name to check.
@@ -264,6 +301,25 @@ router.post('/:id/files/upload', upload.array('files'), async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 });
+
+router.get('/:id/files/plugin/:download_url', async (req, res) => {
+    const { id, download_url } = req.params;
+    const volumePath = path.join(__dirname, '../volumes', id); // Path to volume storage
+    const subPath = 'plugins'; // Subdirectory for file storage, if provided
+
+
+    try {
+        const fullPath = safePath(volumePath, subPath); // Get the full path with subdirectory
+
+        downloadAndSaveFile(download_url, fullPath)
+
+        // Respond with success message if all files are uploaded
+        res.status(200).json({ message: 'Plugin Added Successfully' });
+    } catch (err) {
+        // Respond with error message if something goes wrong
+        res.status(500).json({ message: err.message });
+    }
+});
 /**
  * POST /:id/files/edit
  * Modifies the content of a specific file within a volume. The file must be of a type that is editable.
@@ -364,13 +420,41 @@ router.post('/:id/folders/create/:foldername', async (req, res) => {
 });
 
 /**
- * DELETE /:id/files/delete
- * Deletes a specific file within a volume. Validates the file path to ensure it is within the designated volume directory.
+ * DELETE /:id/folders/delete/:foldername
+ * Deletes a specific file within a volume. Validates the folder path to ensure it is within the designated volume directory.
  *
  * @param {string} id - The volume identifier.
- * @param {string} filename - The name of the file to delete.
+ * @param {string} foldername - The name of the folder to delete.
  * @returns {Response} JSON response indicating the result of the delete operation.
  */
+router.get('/:id/folders/delete/:foldername', async (req, res) => {
+    const { id, foldername } = req.params;
+    const volumePath = path.join(__dirname, '../volumes', id);
+    const subPath = req.query.path || '';
+
+    try {
+        // Ensure the path is safe and resolve it to an absolute path
+        const fullPath = safePath(volumePath, subPath);
+        const targetFolderPath = path.join(fullPath, foldername);
+
+        // Check if the folder exists
+        try {
+            await fs.access(targetFolderPath);
+        } catch (err) {
+            if (err.code === 'ENOENT') {
+                return res.status(404).json({ message: 'Folder not found' });
+            }
+            return res.status(500).json({ message: err.message });
+        }
+
+        // Remove the folder (non-empty) using fs.rm() with recursive option
+        await fs.rm(targetFolderPath, { recursive: true, force: true });
+        res.json({ message: 'Folder deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 router.delete('/:id/files/delete/:filename', async (req, res) => {
     const { id, filename } = req.params;
     const volumePath = path.join(__dirname, '../volumes', id);
