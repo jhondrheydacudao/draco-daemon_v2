@@ -1,10 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const https = require('https');
+const http = require('http');
 const fs = require('fs').promises;
+const fsSync = require('fs');  // Sync for unlink
 const multer = require('multer');
 const upload = multer({ dest: 'tmp/' });
 const path = require('path');
+const { pipeline } = require('stream');
 
 /**
  * Ensures the target path is within the specified base directory, preventing directory traversal attacks.
@@ -48,40 +52,86 @@ function getFilePurpose(file) {
 
 async function downloadAndSaveFile(url, fullPath) {
     try {
-      // Ensure the directory exists, if not, create it
-      const dir = path.dirname(fullPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
+      // Sanitize URL to remove query parameters and get the file name
+      const sanitizedUrl = new URL(url);
+      const fileName = path.basename(sanitizedUrl.pathname); // Get the actual file name from the URL path
+      const tempFilePath = path.join('tmp', fileName); // Temporary location for the file
+      const tempdir = path.join('tmp');
   
-      // Fetch the file from the URL
-      const response = await axios({
-        method: 'get',
-        url: url,
-        responseType: 'stream', // Stream the response to handle large files
+      // Ensure the destination directory is writable
+      const directoryPath = path.dirname(fullPath);
+      await fsSync.promises.access(directoryPath, fsSync.constants.W_OK);  // Check write permission for the destination directory
+      await fsSync.promises.access(tempdir, fsSync.constants.W_OK);  // Check write permission for temp directory
+  
+      // Determine the correct protocol module (http or https)
+      const protocol = sanitizedUrl.protocol === 'https:' ? https : http;
+  
+      // Download the file using the appropriate protocol
+      protocol.get(url, (response) => {
+        if (response.statusCode === 302) {
+          // Follow the redirect
+          const redirectUrl = response.headers.location;
+          // Recursively call the function to handle the new location
+          return downloadAndSaveFile(redirectUrl, fullPath);
+        }
+  
+        if (response.statusCode !== 200) {
+          console.error(`Failed to download ${fileName}: HTTP status code ${response.statusCode}`);
+          return;
+        }
+  
+        // Create a writable stream to save the file
+        const writeStream = fsSync.createWriteStream(tempFilePath);
+  
+        // Pipe the response data to the writable stream
+        pipeline(response, writeStream, (err) => {
+          if (err) {
+            fsSync.unlink(tempFilePath, () => {}); // Delete temp file if error occurs during piping
+            console.error('Error during file pipe:', err);
+            throw err;
+          }
+  
+          // Once the file is written successfully, move it to the final location
+          moveFile(tempFilePath, fullPath, fileName);
+        });
+      }).on('error', (err) => {
+        fsSync.unlink(tempFilePath, () => {}); // Delete temp file if request fails
+        console.error('Error downloading the file:', err);
+        throw err;
       });
-  
-      // Create a writable stream to save the file
-      const writer = fs.createWriteStream(fullPath);
-  
-      // Pipe the response data to the writable stream
-      response.data.pipe(writer);
-  
-      // Wait for the file to be written completely
-      writer.on('finish', () => {
-        console.log(`File downloaded and saved to ${fullPath}`);
-      });
-  
-      writer.on('error', (err) => {
-        console.error('Error writing file:', err);
-      });
-  
     } catch (error) {
-      console.error('Error downloading file:', error);
+      console.error('Error downloading or moving the file:', error);
+      throw error;
     }
   }
-
   
+  async function moveFile(tempFilePath, fullPath, fileName) {
+    try {
+      // Check if the destination path is a directory
+      const destinationStat = await fsSync.promises.stat(fullPath).catch(() => null);
+      if (destinationStat && destinationStat.isDirectory()) {
+        // If it's a directory, append the file name to the path to create the full file path
+        fullPath = path.join(fullPath, fileName);  // Create full file path if destination is a directory
+      }
+  
+      // Create a hard link from the temp file to the final destination
+      await fsSync.promises.link(tempFilePath, fullPath); // Link the temporary file to the final destination
+  
+      // Remove the temporary file
+      fsSync.unlink(tempFilePath, (err) => {
+        if (err) {
+          console.error('Error unlinking the temporary file:', err);
+          throw err;
+        }
+        console.log(`Temporary file removed.`);
+      });
+  
+      console.log(`File downloaded and saved to ${fullPath}`);
+    } catch (error) {
+      console.error('Error moving the file:', error);
+      throw error;
+    }
+  }
 /**
  * Determines if a file is editable based on its extension.
  * @param {string} file - The file name to check.
@@ -302,7 +352,7 @@ router.post('/:id/files/upload', upload.array('files'), async (req, res) => {
     }
 });
 
-router.get('/:id/files/plugin/:download_url', async (req, res) => {
+router.post('/:id/files/plugin/:download_url', async (req, res) => {
     const { id, download_url } = req.params;
     const volumePath = path.join(__dirname, '../volumes', id); // Path to volume storage
     const subPath = 'plugins'; // Subdirectory for file storage, if provided
