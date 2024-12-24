@@ -1,6 +1,8 @@
-<p align="center"><img src="https://raw.githubusercontent.com/HydraLabs-beta/sedar/main/HydraDaemon.png"></img></p>
-# Hydra Daemon 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/HydraLabs-beta/sedar/main/HydraDaemon2.png" alt="HydraBanner">
+</p>
 
+<h1 align="center">HydraDaemon</h1>
 ## Overview
 Hydra Daemon is the daemon for the Hydra Panel.
 
@@ -12,7 +14,7 @@ Hydra Daemon is the daemon for the Hydra Panel.
 `npm install`
 
 3. Configure HydraDAEMON:
-- Get your Panel's access key from the Hydra panel's config.json file and set it as 'remoteKey'. Do the same for the other way, set your Aird access key and configure it on the Panel.
+- Get your Panel's access key from the Hydra panel's config.json file and set it as 'remoteKey'. Do the same for the other way, set your HydraDaemon access key and configure it on the Panel.
 
 4. Start the Daemon:
 `node . # or use pm2 to keep it online`
@@ -32,3 +34,4 @@ Contributions to enhance the functionality or performance of the Hydra Daemon ar
 
 ## Credits
 SRYDEN
+Skyport
