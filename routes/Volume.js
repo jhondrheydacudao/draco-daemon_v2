@@ -54,7 +54,13 @@ async function downloadAndSaveFile(url, fullPath) {
     try {
       // Sanitize URL to remove query parameters and get the file name
       const sanitizedUrl = new URL(url);
-      const fileName = path.basename(sanitizedUrl.pathname); // Get the actual file name from the URL path
+      let fileName = path.basename(sanitizedUrl.pathname); // Get the actual file name from the URL path
+      
+      // Ensure the file ends with .jar extension
+      if (!fileName.endsWith('.jar')) {
+        fileName = `${fileName}.jar`; // Append .jar if it doesn't already have it
+      }
+
       const tempFilePath = path.join('tmp', fileName); // Temporary location for the file
       const tempdir = path.join('tmp');
   
@@ -103,7 +109,7 @@ async function downloadAndSaveFile(url, fullPath) {
       console.error('Error downloading or moving the file:', error);
       throw error;
     }
-  }
+}
   
   async function moveFile(tempFilePath, fullPath, fileName) {
     try {
