@@ -95,9 +95,11 @@ router.post('/create', async (req, res) => {
         const environmentVariables = [
             ...(Env || []),
             ...variables2Env,
-            `PRIMARY_PORT=${primaryPort}`
+            `PRIMARY_PORT=${primaryPort}`,
+            `INSTANCE_MEMORY=${Memory}`,
+            `INSTANCE_CPU=${Cpu}`,
+            `INSTANCE_ID=${Id}`
         ];
-
         const containerOptions = {
             name: Id,
             Image,
