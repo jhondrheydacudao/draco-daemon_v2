@@ -215,7 +215,7 @@ function initializeWebSocketServer(server) {
                 follow: true,
                 stdout: true,
                 stderr: true,
-                tail: 25
+                tail: 50
             });
 
             logStream.on('data', chunk => {
@@ -226,9 +226,7 @@ function initializeWebSocketServer(server) {
                 if (isAuthenticated) {
                     const command = JSON.parse(msg).command;
                     
-                    if (command === "HydraCredits") {
-                        ws.send("ma4z, sryden, matt james, privt");
-                    } else if (command) {
+                    if (command) {
                         executeCommand(ws, container, command);
                     }
                 }
