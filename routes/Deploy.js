@@ -7,6 +7,7 @@ const path = require('path');
 const CatLoggr = require('cat-loggr');
 const log = new CatLoggr();
 const https = require('https');
+const { pullImage } = require('../handlers/seed')
 const { pipeline } = require('stream/promises');
 
 const docker = new Docker({ socketPath: process.env.dockerSocket });
@@ -83,6 +84,7 @@ router.post('/create', async (req, res) => {
     const variables2 = req.body.variables;
 
     try {
+        await pullImage(Image)
         const volumePath = path.join(__dirname, '../volumes', Id);
         await fs.mkdir(volumePath, { recursive: true });
         const primaryPort = Object.values(PortBindings)[0][0].HostPort;
