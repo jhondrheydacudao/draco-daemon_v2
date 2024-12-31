@@ -9,6 +9,7 @@ const multer = require('multer');
 const upload = multer({ dest: 'tmp/' });
 const path = require('path');
 const { pipeline } = require('stream');
+const { exec } = require('child_process');
 
 /**
  * Ensures the target path is within the specified base directory, preventing directory traversal attacks.
@@ -231,6 +232,65 @@ router.get('/:id/files', async (req, res) => {
         
         res.json({ files: detailedFiles });
     } catch (err) {
+        if (err.message.includes('Attempting to access outside of the volume')) {
+            res.status(400).json({ message: err.message });
+        } else {
+            res.status(500).json({ message: err.message });
+        }
+    }
+});
+
+function unzipFile(file, fullPath) {
+    return new Promise((resolve, reject) => {
+        exec(`unzip -o ${file} -d ${fullPath}`, (error, stdout, stderr) => {
+            console.log(`Unzipping file: ${file} to path: ${fullPath}`);
+            if (error) {
+                console.error(`Error during unzip: ${error.message}`); // Log the error message
+                reject(500); // Reject with 500 if there's an error
+            } else {
+                console.log(`Successfully unzipped ${file} to ${fullPath}`); // Log success
+                resolve(200); // Resolve with 200 if successful
+            }
+        });
+    });
+}
+
+router.post('/:id/files/unzip/:file', async (req, res) => {
+    const { id, file } = req.params;
+    const subPath = req.query.path || '';
+    const volumePath = path.join(__dirname, '../volumes', id);
+
+    if (!id) {
+        console.error('No volume ID provided');  // Log missing volume ID
+        return res.status(400).json({ message: 'No volume ID' });
+    }
+
+    try {
+        const fullPath = safePath(volumePath, subPath);
+        
+        exec(`unzip -o ${file} -d ${fullPath}`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error during unzip: ${error.message}`); // Log error during exec
+                return res.status(500).json({ message: 'Error during unzip' });
+            } else {
+                console.log(`Successfully unzipped ${file} to ${fullPath}`); // Log success
+            }
+        });
+
+        let returndata = [];
+
+        unzipFile(file, fullPath)
+            .then((statusCode) => {
+                returndata.push({ statusCode });
+                res.status(200).json({ success: returndata }); // Send response after unzipFile completes
+            })
+            .catch((err) => {
+                console.error(`Unzip file failed: ${err}`); // Log failure of unzipFile
+                res.status(500).json({ message: 'Failed to unzip file' });
+            });
+
+    } catch (err) {
+        console.error(`Error in unzip route: ${err.message}`); // Log error in the try-catch block
         if (err.message.includes('Attempting to access outside of the volume')) {
             res.status(400).json({ message: err.message });
         } else {
