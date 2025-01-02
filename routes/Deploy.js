@@ -138,6 +138,27 @@ router.get("/:id/states/set/:state", async (req, res) => {
   }
 });
 
+router.get("/:id/states/get", async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Read the existing data
+    const data = JSON.parse(await fs.readFile(statedirectory, "utf-8"));
+
+    // Find the item with the matching ID
+    const item = data.find((entry) => entry.Id === id);
+
+    if (!item) {
+      return res.status(404).json({ error: `ID ${id} not found.` });
+    }
+
+    // Update the state
+    const showState = item.State;
+    res.json({ success: true, state: showState });
+  } catch (error) {
+    console.error("Error updating state:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 router.post("/create", async (req, res) => {
   log.info("Deployment in progress...");
   const { Image, Id, Cmd, Env, Ports, Scripts, Memory, Cpu, PortBindings } =
