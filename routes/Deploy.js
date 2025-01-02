@@ -12,6 +12,23 @@ const { pipeline } = require("stream/promises");
 const statedirectory = path.resolve(__dirname, "../states.json");
 const docker = new Docker({ socketPath: process.env.dockerSocket });
 
+async function setStateValue(id, state) {
+  const data = JSON.parse(await fs.readFile(statedirectory, "utf-8"));
+
+  // Find the item with the matching ID
+  const item = data.find((entry) => entry.Id === id);
+
+  if (!item) {
+    return `ID ${id} not found.`;
+  }
+
+  // Update the state
+  item.State = state;
+
+  // Write the updated data back to the file
+  await fs.writeFile(statedirectory, JSON.stringify(data, null, 2));
+}
+
 async function setState(id, state) {
   try {
     // Check if the states.json file exists
@@ -115,22 +132,7 @@ router.get("/:id/states/set/:state", async (req, res) => {
   const { id, state } = req.params;
 
   try {
-    // Read the existing data
-    const data = JSON.parse(await fs.readFile(statedirectory, "utf-8"));
-
-    // Find the item with the matching ID
-    const item = data.find((entry) => entry.Id === id);
-
-    if (!item) {
-      return res.status(404).json({ error: `ID ${id} not found.` });
-    }
-
-    // Update the state
-    item.State = state;
-
-    // Write the updated data back to the file
-    await fs.writeFile(statedirectory, JSON.stringify(data, null, 2));
-
+    await setStateValue(id, state);
     res.json({ success: true, message: `State updated for ID ${id}` });
   } catch (error) {
     console.error("Error updating state:", error);
@@ -229,7 +231,7 @@ router.post("/create", async (req, res) => {
 
       await replaceVariables(dir, variables);
     }
-
+    await setStateValue(Id, "READY");
     await container.start();
   } catch (err) {
     log.error("Deployment failed: " + err.message);
