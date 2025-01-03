@@ -208,7 +208,7 @@ router.post("/create", async (req, res) => {
     if (Cmd) containerOptions.Cmd = Cmd;
 
     const container = await docker.createContainer(containerOptions);
-    const state = await setState(Id, "Installing");
+    const state = await setState(Id, "INSTALLING");
     log.info("Deployment completed! Container: " + container.id);
     res.status(201).json({
       message: "Container and volume created successfully",
@@ -235,6 +235,7 @@ router.post("/create", async (req, res) => {
     await container.start();
   } catch (err) {
     log.error("Deployment failed: " + err.message);
+     await setStateValue(Id, "FAILED");
     res.status(500).json({ message: err.message });
   }
 });
