@@ -10,6 +10,7 @@ const upload = multer({ dest: 'tmp/' });
 const path = require('path');
 const { pipeline } = require('stream');
 const { exec } = require('child_process');
+const plugin = require('@tailwindcss/forms');
 
 /**
  * Ensures the target path is within the specified base directory, preventing directory traversal attacks.
@@ -51,67 +52,45 @@ function getFilePurpose(file) {
     return 'other';
 }
 
-async function downloadAndSaveFile(url, fullPath) {
-    try {
-      // Sanitize URL to remove query parameters and get the file name
-      const sanitizedUrl = new URL(url);
-      let fileName = path.basename(sanitizedUrl.pathname); // Get the actual file name from the URL path
-      
-      // Ensure the file ends with .jar extension
-      if (!fileName.endsWith('.jar')) {
-        fileName = `${fileName}.jar`; // Append .jar if it doesn't already have it
-      }
-
-      const tempFilePath = path.join('tmp', fileName); // Temporary location for the file
-      const tempdir = path.join('tmp');
   
-      // Ensure the destination directory is writable
-      const directoryPath = path.dirname(fullPath);
-      await fsSync.promises.access(directoryPath, fsSync.constants.W_OK);  // Check write permission for the destination directory
-      await fsSync.promises.access(tempdir, fsSync.constants.W_OK);  // Check write permission for temp directory
-  
-      // Determine the correct protocol module (http or https)
-      const protocol = sanitizedUrl.protocol === 'https:' ? https : http;
-  
-      // Download the file using the appropriate protocol
-      protocol.get(url, (response) => {
-        if (response.statusCode === 302) {
-          // Follow the redirect
-          const redirectUrl = response.headers.location;
-          // Recursively call the function to handle the new location
-          return downloadAndSaveFile(redirectUrl, fullPath);
-        }
-  
-        if (response.statusCode !== 200) {
-          console.error(`Failed to download ${fileName}: HTTP status code ${response.statusCode}`);
-          return;
-        }
-  
-        // Create a writable stream to save the file
-        const writeStream = fsSync.createWriteStream(tempFilePath);
-  
-        // Pipe the response data to the writable stream
-        pipeline(response, writeStream, (err) => {
-          if (err) {
-            fsSync.unlink(tempFilePath, () => {}); // Delete temp file if error occurs during piping
-            console.error('Error during file pipe:', err);
-            throw err;
+const downloadFile = (url, dir, filename) => {
+    return new Promise((resolve, reject) => {
+      const filePath = path.join(dir, filename);
+      https
+        .get(url, (response) => {
+          if (response.statusCode === 302) {
+            const redirectUrl = response.headers.location;
+            return downloadFile(redirectUrl, dir, filename); // Recursively handle redirect
           }
   
-          // Once the file is written successfully, move it to the final location
-          moveFile(tempFilePath, fullPath, fileName);
-        });
-      }).on('error', (err) => {
-        fsSync.unlink(tempFilePath, () => {}); // Delete temp file if request fails
-        console.error('Error downloading the file:', err);
-        throw err;
-      });
-    } catch (error) {
-      console.error('Error downloading or moving the file:', error);
-      throw error;
-    }
-}
+          if (response.statusCode !== 200) {
+            reject(
+              new Error(
+                `Failed to download plugin ${filename}: HTTP status code ${response.statusCode}`
+              )
+            );
+            return;
+          }
   
+          const writeStream = fsSync.createWriteStream(filePath);
+  
+          // Use pipeline and pass the writeStream as the last argument, no async/await required
+          pipeline(response, writeStream, (err) => {
+            if (err) {
+              fsSync.unlink(filePath, () => {}); // Clean up the incomplete file
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        })
+        .on("error", (err) => {
+          fsSync.unlink(filePath, () => {}); // Clean up on error
+          reject(err);
+        });
+    });
+  };
+
   async function moveFile(tempFilePath, fullPath, fileName) {
     try {
       // Check if the destination path is a directory
@@ -418,18 +397,16 @@ router.post('/:id/files/upload', upload.array('files'), async (req, res) => {
     }
 });
 
-router.post('/:id/files/plugin/:download_url', async (req, res) => {
-    const { id, download_url } = req.params;
+router.post('/:id/files/plugin/:download_url/:plugin_name', async (req, res) => {
+    const { id, download_url, plugin_name } = req.params;
     const volumePath = path.join(__dirname, '../volumes', id); // Path to volume storage
     const subPath = 'plugins'; // Subdirectory for file storage, if provided
 
-
     try {
         const fullPath = safePath(volumePath, subPath); // Get the full path with subdirectory
+        const fullName = `${plugin_name}.jar`;
+        downloadFile(download_url, fullPath, fullName)
 
-        downloadAndSaveFile(download_url, fullPath)
-
-        // Respond with success message if all files are uploaded
         res.status(200).json({ message: 'Plugin Added Successfully' });
     } catch (err) {
         // Respond with error message if something goes wrong
