@@ -319,10 +319,9 @@ function unzipFile(file, fullPath, id) {
   });
 }
 
-router.post("/:id/files/unzip/:file/:outputname", async (req, res) => {
+router.post("/:id/files/unzip/:file", async (req, res) => {
   const { id, file } = req.params;
   const subPath = req.query.path || "";
-  const outputname = req.query.outputname || file;
   const volumePath = path.join(__dirname, "../volumes", id);
 
   if (!id) {
