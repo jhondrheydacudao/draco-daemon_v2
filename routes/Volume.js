@@ -620,11 +620,43 @@ router.get("/:id/folders/delete/:foldername", async (req, res) => {
       return res.status(500).json({ message: err.message });
     }
 
-    // Remove the folder (non-empty) using fs.rm() with recursive option
     await fs.rm(targetFolderPath, { recursive: true, force: true });
     res.json({ message: "Folder deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+router.post("/:id/folders/rename/:foldername/:newfoldername", async (req, res) => {
+  const { id, foldername, newfoldername } = req.params;
+  const volumePath = path.join(__dirname, "../volumes", id);
+  const subPath = req.query.path || "";
+
+  try {
+    const oldPath = safePath(path.join(volumePath, subPath), foldername);
+    const newPath = safePath(path.join(volumePath, subPath), newfoldername);
+
+    // Check if the new foldername already exists
+    try {
+      await fs.access(newPath);
+      return res
+        .status(400)
+        .json({ message: "A folder with the new name already exists" });
+    } catch (err) {
+      // If fs.access throws an error, it means the folder doesn't exist, which is what we want
+      if (err.code !== "ENOENT") {
+        throw err;
+      }
+    }
+
+    await fs.rename(oldPath, newPath);
+    res.json({ message: "Folder renamed successfully" });
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      res.status(404).json({ message: "Folder not found" });
+    } else {
+      res.status(500).json({ message: err.message });
+    }
   }
 });
 
