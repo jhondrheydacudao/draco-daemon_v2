@@ -10,6 +10,7 @@ const router = express.Router();
 const Docker = require('dockerode');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process')
 
 const docker = new Docker({ socketPath: process.env.dockerSocket });
 
@@ -44,7 +45,7 @@ router.get('/', (req, res) => {
  * @returns {Response} JSON response with detailed container information or an error message indicating the container was not found.
  */
 router.get('/:id', (req, res) => {
-  if (req.params.id) return res.send('no id');
+  if (req.params.id) return res.status(401).json({ error: 'you dummy didnt provide the id why?' });
   const container = docker.getContainer(req.params.id);
   container.inspect((err, data) => {
     if (err) {
@@ -128,5 +129,48 @@ router.get('/purge/all', async (req, res) => {
   }
 });
 
+function getDiskUsage(dirPath, callback) {
+  exec(`du -sh ${dirPath}`, (error, stdout, stderr) => {
+      if (error) {
+          callback(error, null);
+          return;
+      }
+      if (stderr) {
+          callback(new Error(stderr), null);
+          return;
+      }
+      const size = stdout.split("\t")[0]; 
+      callback(null, size);
+  });
+}
+function getDiskUsage(dirPath, callback) {
+  exec(`du -sh ${dirPath}`, (error, stdout, stderr) => {
+      if (error) {
+          callback(error, null);
+          return;
+      }
+      if (stderr) {
+          callback(new Error(stderr), null);
+          return;
+      }
+      const size = stdout.split("\t")[0]; 
+      callback(null, size);
+  });
+}
 
+router.get("/:id/disk/usage", (req, res) => {
+  const id = req.params.id;
+  const dirPath = path.join(__dirname, "../volumes", id);
+
+  if (!fs.existsSync(dirPath)) {
+      return res.status(404).json({ error: "Directory not found" });
+  }
+
+  getDiskUsage(dirPath, (error, size) => {
+      if (error) {
+          return res.status(500).json({ error: error.message });
+      }
+      res.json({ id, totalSpace: size });
+  });
+});
 module.exports = router;
