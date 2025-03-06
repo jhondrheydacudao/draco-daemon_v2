@@ -1,6 +1,6 @@
 {
-  "name": "HydraDaemon",
-  "version": "0.1.0-beta1",
+  "name": "DracoDaemon",
+  "version": "0.1.0-release",
   "description": "",
   "main": "index.js",
   "scripts": {
