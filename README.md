@@ -33,4 +33,5 @@ Contributions to enhance the functionality or performance of the Draco Daemon ar
 SRYDEN
 Skyport
 Hydra-Labes
-Thanks ma4z,ether,achul123,privt
+
+- Thanks ma4z,ether,achul123,privt
