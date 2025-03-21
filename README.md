@@ -23,7 +23,7 @@ Draco Daemon is the daemon for the Draco Panel.
 Configuration settings can be adjusted in the `config.json` file. This includes the authentication key for API access.
 
 ## Usage
-The daemon runs as a background service, interfacing with the Hydra Panel for operational commands and status updates. It is not typically interacted with directly by end-users.
+The daemon runs as a background service, interfacing with the Draco Panel for operational commands and status updates. It is not typically interacted with directly by end-users.
 
 ## Contributing
 Contributions to enhance the functionality or performance of the Draco Daemon are encouraged. Please submit pull requests for any enhancements.
