@@ -7,10 +7,13 @@ Draco Daemon is the daemon for the Draco Panel.
 1. Clone the repository:
 `git clone https://github.com/draco-labes/draco-daemon`
 
-2. Install dependencies:
+2. go to panel directory:
+`cd draco-daemon` 
+
+3. Install dependencies:
 `npm install`
 
-3. Configure DracoDaemon:
+4. Configure DracoDaemon:
 - Get your Panel's access key from the Hydra panel's config.json file and set it as 'remoteKey'. Do the same for the other way, set your DracoDaemon access key and configure it on the Panel.
 
 4. Start the Daemon:
