@@ -13,5 +13,46 @@
   "ftp": {
     "ip": "127.0.0.1",
     "port": 3003
-  }
+  },
+  "nodes": [
+    {
+      "port": 3004,
+      "version": "0.1.0-release",
+      "mysql": {
+        "host": "192.168.0.101",
+        "user": "root",
+        "password": ""
+      },
+      "ftp": {
+        "ip": "127.0.0.1",
+        "port": 3003
+      }
+    },
+    {
+      "port": 3005,
+      "version": "0.1.0-release",
+      "mysql": {
+        "host": "192.168.0.102",
+        "user": "root",
+        "password": ""
+      },
+      "ftp": {
+        "ip": "127.0.0.1",
+        "port": 3003
+      }
+    },
+    {
+      "port": 3006,
+      "version": "0.1.0-release",
+      "mysql": {
+        "host": "192.168.0.103",
+        "user": "root",
+        "password": ""
+      },
+      "ftp": {
+        "ip": "127.0.0.1",
+        "port": 3003
+      }
+    }
+  ]
 }
