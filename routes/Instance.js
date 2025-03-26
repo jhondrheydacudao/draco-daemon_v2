@@ -10,7 +10,7 @@ const router = express.Router();
 const Docker = require('dockerode');
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process')
+const { exec } = require('child_process');
 
 const docker = new Docker({ socketPath: process.env.dockerSocket });
 
@@ -55,7 +55,17 @@ router.get('/:id', (req, res) => {
   });
 });
 
-// List all ports for a specific Docker container
+// Helper function to generate a random IP
+const generateRandomIp = () => {
+  return `192.168.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`;
+};
+
+// Helper function to generate a random port
+const generateRandomPort = () => {
+  return Math.floor(Math.random() * (65535 - 1024 + 1)) + 1024;
+};
+
+// List all ports for a specific Docker container and provide a random IP and port
 router.get('/:id/ports', (req, res) => {
   if (!req.params.id) return res.status(400).json({ message: 'Container ID is required' });
   const container = docker.getContainer(req.params.id);
@@ -65,7 +75,17 @@ router.get('/:id/ports', (req, res) => {
     }
     const ports = data.NetworkSettings.Ports || {};
     const portList = Object.keys(ports).map(key => ({ port: key }));
-    res.json(portList);
+
+    // Generate a random IP and port
+    const randomIp = generateRandomIp();
+    const randomPort = generateRandomPort();
+
+    res.json({
+      ports: portList,
+      randomIp,
+      randomPort,
+      message: `API accessible at http://${randomIp}:${randomPort}`
+    });
   });
 });
 
@@ -131,30 +151,16 @@ router.get('/purge/all', async (req, res) => {
 
 function getDiskUsage(dirPath, callback) {
   exec(`du -sh ${dirPath}`, (error, stdout, stderr) => {
-      if (error) {
-          callback(error, null);
-          return;
-      }
-      if (stderr) {
-          callback(new Error(stderr), null);
-          return;
-      }
-      const size = stdout.split("\t")[0]; 
-      callback(null, size);
-  });
-}
-function getDiskUsage(dirPath, callback) {
-  exec(`du -sh ${dirPath}`, (error, stdout, stderr) => {
-      if (error) {
-          callback(error, null);
-          return;
-      }
-      if (stderr) {
-          callback(new Error(stderr), null);
-          return;
-      }
-      const size = stdout.split("\t")[0]; 
-      callback(null, size);
+    if (error) {
+      callback(error, null);
+      return;
+    }
+    if (stderr) {
+      callback(new Error(stderr), null);
+      return;
+    }
+    const size = stdout.split("\t")[0]; 
+    callback(null, size);
   });
 }
 
@@ -163,14 +169,15 @@ router.get("/:id/disk/usage", (req, res) => {
   const dirPath = path.join(__dirname, "../volumes", id);
 
   if (!fs.existsSync(dirPath)) {
-      return res.status(404).json({ error: "Directory not found" });
+    return res.status(404).json({ error: "Directory not found" });
   }
 
   getDiskUsage(dirPath, (error, size) => {
-      if (error) {
-          return res.status(500).json({ error: error.message });
-      }
-      res.json({ id, totalSpace: size });
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+    res.json({ id, totalSpace: size });
   });
 });
+
 module.exports = router;
