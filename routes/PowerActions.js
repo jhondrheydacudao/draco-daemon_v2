@@ -8,6 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const Docker = require('dockerode');
+const logger = require('cat-loggr').instance();
 
 const docker = new Docker({ socketPath: process.env.dockerSocket });
 
@@ -23,8 +24,9 @@ const docker = new Docker({ socketPath: process.env.dockerSocket });
  * @returns {Response} JSON response indicating the outcome of the action, either successful execution or an error.
  */
 router.post('/:id/:power', async (req, res) => {
-    const { power } = req.params;
-    const container = docker.getContainer(req.params.id);
+    const { id, power } = req.params;
+    const container = docker.getContainer(id);
+
     try {
         switch (power) {
             case 'start':
@@ -34,13 +36,16 @@ router.post('/:id/:power', async (req, res) => {
             case 'unpause':
             case 'kill':
                 await container[power]();
+                logger.info(`Container ${id} ${power}ed successfully`);
                 res.status(200).json({ message: `Container ${power}ed successfully` });
                 break;
             default:
+                logger.warn(`Invalid power action: ${power}`);
                 res.status(400).json({ message: 'Invalid power action' });
         }
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        logger.error(`Error performing ${power} action on container ${id}: ${err.message}`);
+        res.status(500).json({ message: `Failed to ${power} container: ${err.message}` });
     }
 });
 
