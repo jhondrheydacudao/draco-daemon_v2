@@ -3,7 +3,7 @@
   "remote": "http://d055346870c8e54544fc3182a8ac6f0b.serveo.net",
   "key": "39bbe91776188a57e740293e6d6cb6a42496085ecf1cd4b43155339f276cfd31",
   "_note3": "Other configuration options below. Hostname must be set for FTP to return the correct info.",
-  "port": 3090,
+  "port": 3001,
   "version": "0.1.0-release",
   "mysql": {
     "host": "localhost",
@@ -25,7 +25,7 @@
       },
       "ftp": {
         "ip": "127.0.0.1",
-        "port": 3003
+        "port": 3010
       }
     },
     {
@@ -38,7 +38,7 @@
       },
       "ftp": {
         "ip": "127.0.0.1",
-        "port": 3003
+        "port": 3008
       }
     },
     {
@@ -51,7 +51,7 @@
       },
       "ftp": {
         "ip": "127.0.0.1",
-        "port": 3003
+        "port": 3018
       }
     }
   ]
